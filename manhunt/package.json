@@ -1,0 +1,11 @@
+{
+  "name": "manhunt",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Manhunt - real-life GPS hide and seek PWA",
+  "scripts": {
+    "test": "node --test test/game.test.js",
+    "dev": "node dev-server.js"
+  },
+  "engines": { "node": ">=18" }
+}

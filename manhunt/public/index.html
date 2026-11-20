@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Manhunt</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <meta name="theme-color" content="#0c120e" />
+  <meta name="description" content="Real-life GPS hide-and-seek for your neighborhood. Host a game, share the code, hunt." />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Manhunt" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="icon" href="/icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div id="toasts" aria-live="polite"></div>
+
+  <!-- HOME -->
+  <section id="home" class="screen">
+    <div class="topo" aria-hidden="true"></div>
+    <div class="home-inner">
+      <svg class="logo" viewBox="0 0 64 64" width="64" height="64" aria-hidden="true">
+        <circle cx="32" cy="32" r="22" fill="none" stroke="#efe8dc" stroke-width="4"/>
+        <circle cx="32" cy="32" r="8" fill="none" stroke="#efe8dc" stroke-width="4"/>
+        <path d="M32 10 A22 22 0 0 1 54 32 L40 32 A8 8 0 0 0 32 24 Z" fill="#ff6a1f"/>
+        <path d="M32 2v14M32 48v14M2 32h14M48 32h14" stroke="#efe8dc" stroke-width="4"/>
+      </svg>
+      <h1 class="wordmark">MAN<span>HUNT</span></h1>
+      <p class="tagline">Hide-and-seek across your whole neighborhood, with a live GPS map and the rules always in your pocket.</p>
+
+      <div class="home-form">
+        <label for="nameInput">Your name</label>
+        <input id="nameInput" maxlength="20" autocomplete="nickname" placeholder="What should we call you?" />
+        <button id="hostBtn" class="btn primary">Host a game</button>
+        <button id="joinToggle" class="btn">Join with a code</button>
+        <div id="joinRow" class="join-row" hidden>
+          <input id="codeInput" maxlength="8" autocapitalize="characters" autocomplete="off" placeholder="CODE" />
+          <button id="joinBtn" class="btn primary">Join</button>
+        </div>
+        <p id="homeError" class="error" role="alert"></p>
+      </div>
+
+      <div class="card perm" id="permCard">
+        <div class="perm-head">
+          <span class="dot" id="permDot"></span>
+          <strong id="permTitle">Location access</strong>
+        </div>
+        <p id="permText">Manhunt needs your GPS. When asked, choose <b>Allow</b> (or "Allow all the time" if your phone offers it).</p>
+        <button id="permBtn" class="btn small">Turn on location</button>
+      </div>
+
+      <div class="card install" id="installCard" hidden>
+        <p>Install Manhunt for full screen and a steadier GPS.</p>
+        <button id="installBtn" class="btn small primary">Install app</button>
+      </div>
+      <p class="hint" id="iosHint" hidden>On iPhone: tap Share, then "Add to Home Screen".</p>
+      <button id="resumeBtn" class="btn ghost" hidden>Resume your game</button>
+    </div>
+  </section>
+
+  <!-- LOBBY -->
+  <section id="lobby" class="screen" hidden>
+    <div class="scroll">
+      <header class="bar">
+        <button id="lobbyBack" class="iconbtn" aria-label="Leave">&#8249;</button>
+        <button id="codeChip" class="codechip" aria-label="Share game code">
+          <span class="lbl">Game code</span><span id="lobbyCode" class="code">-----</span>
+          <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M18 16a3 3 0 0 0-2.4 1.2l-6.9-4a3 3 0 0 0 0-2.4l6.9-4A3 3 0 1 0 15 5.5l-6.9 4a3 3 0 1 0 0 5l6.9 4A3 3 0 1 0 18 16z"/></svg>
+        </button>
+      </header>
+      <h2 class="title">Set up the hunt</h2>
+      <p id="lobbySub" class="sub"></p>
+      <div id="lobbyBody"></div>
+      <div class="card" id="playersCard">
+        <h3>Players <span id="playerCount" class="muted"></span></h3>
+        <ul id="lobbyPlayers" class="plist"></ul>
+        <p class="muted small-t">Share the code or link so friends can join.</p>
+      </div>
+      <div class="spacer"></div>
+    </div>
+    <div class="dock">
+      <button id="startBtn" class="btn primary big">Start the hunt</button>
+      <p id="startNote" class="muted small-t center"></p>
+    </div>
+  </section>
+
+  <!-- GAME -->
+  <section id="game" class="screen" hidden>
+    <div id="map"></div>
+    <div id="hud">
+      <div class="chip" id="hudRole"></div>
+      <div class="chip" id="hudClock"></div>
+      <div class="chip" id="hudPing"></div>
+      <div class="chip" id="hudGps"></div>
+    </div>
+    <div id="banner" hidden></div>
+    <button id="recenter" class="fab" aria-label="Center on me">
+      <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zm8.9 3A9 9 0 0 0 13 3.1V1h-2v2.1A9 9 0 0 0 3.1 11H1v2h2.1A9 9 0 0 0 11 20.9V23h2v-2.1A9 9 0 0 0 20.9 13H23v-2h-2.1zM12 19a7 7 0 1 1 0-14 7 7 0 0 1 0 14z"/></svg>
+    </button>
+    <aside id="sheet" class="snap-peek">
+      <div id="sheetHandle" role="button" aria-label="Expand panel"><i></i></div>
+      <div id="peek">
+        <div id="strip"></div>
+        <div id="actionRow"></div>
+      </div>
+      <nav id="tabs">
+        <button data-tab="status" class="on">Status</button>
+        <button data-tab="abilities">Abilities</button>
+        <button data-tab="rules">Rules</button>
+        <button data-tab="players">Players</button>
+      </nav>
+      <div id="tabBody"></div>
+    </aside>
+  </section>
+
+  <!-- END -->
+  <section id="end" class="screen" hidden>
+    <div class="scroll">
+      <div class="endhead">
+        <p class="muted">Game over</p>
+        <h2 id="endTitle" class="title"></h2>
+        <p id="endReason" class="sub"></p>
+      </div>
+      <div class="card"><h3>Players</h3><ul id="endPlayers" class="plist"></ul></div>
+      <div class="card"><h3>What happened</h3><ul id="endLog" class="log"></ul></div>
+      <div class="spacer"></div>
+    </div>
+    <div class="dock">
+      <button id="rematchBtn" class="btn primary big" hidden>Play again with the same players</button>
+      <button id="endLeave" class="btn big">Back to home</button>
+    </div>
+  </section>
+
+  <!-- MAP EDITOR (host) -->
+  <section id="editor" class="screen" hidden>
+    <div id="edmap"></div>
+    <div id="edtop">
+      <button id="edClose" class="iconbtn" aria-label="Close">&#10005;</button>
+      <div class="seg" id="edTabs">
+        <button data-ed="zone" class="on">Play area</button>
+        <button data-ed="safe">Safe zones</button>
+      </div>
+    </div>
+    <form id="edSearch"><input id="edQuery" placeholder="Search a place, then tap the map" /><button class="btn small">Go</button></form>
+    <div id="edpanel">
+      <p id="edHelp" class="muted small-t"></p>
+      <div id="edShapeRow" class="seg">
+        <button data-shape="circle" class="on">Circle</button>
+        <button data-shape="polygon">Trace streets</button>
+      </div>
+      <div class="rangeRow"><span id="edRadLabel">Radius</span><b id="edRadVal"></b></div>
+      <input id="edRadius" type="range" />
+      <div class="row2">
+        <button id="edMe" class="btn small">My location</button>
+        <button id="edUndo" class="btn small">Undo</button>
+        <button id="edClear" class="btn small">Clear</button>
+        <button id="edDone" class="btn small primary">Save</button>
+      </div>
+    </div>
+  </section>
+
+  <div id="modal" class="modal" hidden><div class="modal-card" id="modalCard"></div></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="/geo.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>
