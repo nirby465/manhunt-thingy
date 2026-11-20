@@ -116,6 +116,8 @@ input[type=range]:disabled { opacity: .4; }
 /* ---------- game */
 #map, #edmap { position: absolute; inset: 0; background: #0b1410; }
 .leaflet-container { font-family: var(--body); background: #0b1410; }
+/* Dark map: invert the standard OpenStreetMap tiles (markers and zones are in other panes, so they keep their colors) */
+.leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(.92) contrast(.92) saturate(.65); }
 .leaflet-control-attribution { background: rgba(12,18,14,.7) !important; color: #7d8a80 !important; font-size: 10px; }
 .leaflet-control-attribution a { color: #9fb0a3 !important; }
 .leaflet-control-zoom { display: none; }
